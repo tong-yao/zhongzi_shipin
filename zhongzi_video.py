@@ -22,7 +22,9 @@ def proxy():
     return agent
 
 
-logging.basicConfig(filename="/home/gogs/spider/log/zhongzi_log.txt", filemode="a", format="%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S", level=logging.DEBUG)
+logging.basicConfig(filename="/home/gogs/spider/log/zhongzi_log.txt", filemode="a",
+                    format="%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S",
+                    level=logging.DEBUG)
 
 
 def down():
@@ -79,32 +81,25 @@ def down():
 
         # 这是视频
         with open('/home/video/{name}.{type}'.format(name=name, type=type), 'wb') as f:
-        # with open('{name}.{type}'.format(name=name, type=type), 'wb') as f:
-            # print(112131231414231423453521412346524353243)
+            print("写入视频")
             f.write(res)
             f.close()
 
-        # 这是海报
+            # 这是海报
             with open('/home/video/{}.jpg'.format(name), 'wb') as f:
-            # with open('{}.jpg'.format(name), 'wb') as f:
-                # print("sgdshrthjdhjiofduydghsfdf,khgjfkhjyg")
+                print("写入海报")
                 f.write(poster)
                 f.close()
 
-        # 写入到mysql写入名字，和路径
+            # 写入到mysql写入名字，和路径
             with conn.cursor() as cursor:
-                video_path = os.path.abspath("/home/video_zhongzi/{}.{}".format(name,type))
-                poster_path = os.path.abspath("/home/video_zhongzi/{}.jpg".format(name))
-                # video_path = os.path.abspath("{}.{}".format(name, type))
-                # poster_path = os.path.abspath("{}.jpg".format(name))
+                video_path = os.path.abspath("/home/video/{}.{}".format(name, type))
+                poster_path = os.path.abspath("/home/video/{}.jpg".format(name))
 
                 print("存入mysql")
                 sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path) values ('%s','%s','%s','%s','%s','%s')" % (
                     title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path)
-                # sql = "insert into video(video_name,video_path,Uploader,birthday,json,poster_path) values ('%s','%s','%s','%s','%s','%s')" % (
-                #     title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path)
-
                 cursor.execute(sql)
                 logging.debug("存入mysql")
-            conn.commit()
+                conn.commit()
         conn.close()
