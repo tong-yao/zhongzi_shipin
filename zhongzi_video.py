@@ -1,6 +1,7 @@
 from zhongzi_settings import user_agent, proxies
+import bloom_filter
 
-import random, base64, requests, json, pymysql, os, hashlib, logging
+import random, base64, requests, json, pymysql, os, hashlib, logging,tiger_video_down_load_consume
 
 
 def headers():
@@ -19,6 +20,7 @@ def proxy():
         "http": ip_port
     }
     print("目前使用代理为:{}".format(agent))
+    logging.debug("目前使用代理为:{}".format(agent))
     return agent
 
 
@@ -48,58 +50,67 @@ def down():
     res_json = json.loads(res.content.decode('UTF-8'))
     # 先把json数据做初步处理
     urls = res_json['data']['videos']
+    if bloom_filter.func1(url=urls):
+
 
     # 循环URL，对自己需要的再进一步处理
-    for i in urls:
-        # 获取视频的名称
-        title_url = i['video']["title"]
-        logging.debug("获取视频名称成功")
-        # 获取视频格式
-        type = i['video']['play_info']['play_list'][0]['vtype']
-        logging.debug("获取视频格式成功")
-        # 种子网的url是用base64加密的，解密一下，下载数据
-        url = i['video']['play_info']['play_list'][0]['play_url']['main_url']['url']
-        logging.debug("获取视频资源成功")
-        url = base64.b64decode(url)
-        logging.debug("base64解密")
-        res = requests.get(url).content
-        # 获取上传用户姓名
-        Uploader = i['user']['nick']
-        logging.debug("获取上传用户姓名成功")
-        # 获取上传时间
-        birthday = i['user']['birthday']
-        logging.debug("获取上传时间成功")
-        # 获取海报
-        poster = requests.get(i['video']['cover']["middle_cover"]["url"]).content
-        logging.debug("获取海报成功")
+        for i in urls:
+            # 获取视频的名称
+            title_url = i['video']["title"]
+            logging.debug("获取视频名称成功")
+            # 获取视频格式
+            type = i['video']['play_info']['play_list'][0]['vtype']
+            logging.debug("获取视频格式成功")
+            # 种子网的url是用base64加密的，解密一下，下载数据
+            url = i['video']['play_info']['play_list'][0]['play_url']['main_url']['url']
+            logging.debug("获取视频资源成功")
+            url = base64.b64decode(url)
+            logging.debug("base64解密")
+            res = requests.get(url).content
+            # 获取上传用户姓名
+            Uploader = i['user']['nick']
+            logging.debug("获取上传用户姓名成功")
+            # 获取上传时间
+            birthday = i['user']['birthday']
+            logging.debug("获取上传时间成功")
+            # 获取海报
+            poster = requests.get(i['video']['cover']["middle_cover"]["url"]).content
+            logging.debug("获取海报成功")
 
-        # md5加密为后期去重
-        md5 = hashlib.md5()
-        md5.update(res)
-        name = md5.hexdigest()
-        print("md5")
+            # md5加密为后期去重
+            md5 = hashlib.md5()
+            md5.update(res)
+            name = md5.hexdigest()
+            print("md5")
 
-        # 这是视频
-        with open('/home/video/{name}.{type}'.format(name=name, type=type), 'wb') as f:
-            print("写入视频")
-            f.write(res)
-            f.close()
+            # 这是视频
+            with open('/home/video/{name}.{type}'.format(name=name, type=type), 'wb') as f:
+                print("写入视频")
+                duration = f.write(res)
+                f.close()
 
-            # 这是海报
+                # 这是海报
             with open('/home/video/{}.jpg'.format(name), 'wb') as f:
                 print("写入海报")
                 f.write(poster)
                 f.close()
 
-            # 写入到mysql写入名字，和路径
+                # 写入到mysql写入名字，和路径
             with conn.cursor() as cursor:
                 video_path = os.path.abspath("/home/video/{}.{}".format(name, type))
                 poster_path = os.path.abspath("/home/video/{}.jpg".format(name))
 
                 print("存入mysql")
-                sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path) values ('%s','%s','%s','%s','%s','%s')" % (
-                    title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path)
+                if duration > 60:
+                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,0)
+                else:
+                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,1)
                 cursor.execute(sql)
                 logging.debug("存入mysql")
                 conn.commit()
-        conn.close()
+        else:
+            print("url已存在")
+            logging.debug("url已存在")
+    conn.close()
