@@ -1,7 +1,7 @@
 from zhongzi_settings import user_agent, proxies
 import bloom_filter
 
-import random, base64, requests, json, pymysql, os, hashlib, logging,tiger_video_down_load_consume
+import random, base64, requests, json, pymysql, os, hashlib, logging
 
 
 def headers():
