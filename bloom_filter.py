@@ -43,24 +43,35 @@ class BloomFilter(object):
             self.hashfunc.append(SimpleHash(self.bit_size, seed))
     # str_input 网站url的字符串
     def isContains(self, str_input):
+        print(type(str_input))
+        print(111111111111)
         # 判断是否有url
         if not str_input:
+            print(2222222222222)
             # 没有返回 false
             return False
         # 创建md5对象
         m5 = md5()
+        print(3333333333)
         # 编码格式
         m5.update(str_input.encode())
+
+        print(4444444)
         # 加密
         str_input = m5.hexdigest()
+        print(5555555)
         ret = True
+        print(66666666)
         # key ： redis的名字
         #       name = key + str（ 切割 加密后的字符串转换成16进制后 拼接blockNum ）
         name = self.key + str(int(str_input[0:2], 16) % self.blockNum)
+        print(7777777)
         # 循环列表
         for f in self.hashfunc:
+            print(888888)
             loc = f.hash(str_input)
             ret = ret & self.server.getbit(name, loc)
+        print(999999)
         return ret
 
     # redis中没有url 走这个函数
@@ -74,8 +85,10 @@ class BloomFilter(object):
             self.server.setbit(name, loc, 1)
 
 def func1(url):
+    print("执行不拢")
     bf = BloomFilter()
     if bf.isContains(url):  # 判断字符串是否存在
+        print("存在")
         return 0
     else:
         print('not exists!')
