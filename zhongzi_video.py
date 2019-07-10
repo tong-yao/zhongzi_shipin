@@ -72,7 +72,7 @@ def down():
         url = base64.b64decode(url)
         logging.debug("base64解密")
         print("去布隆函数")
-        url = str(url,encoding="utf-8")
+        url = str(url, encoding="utf-8")
         if bloom_filter.func1(url=url):
             # 获取视频
             res = requests.get(url).content
@@ -104,7 +104,6 @@ def down():
                 print("写入视频")
                 f.write(res)
                 duration = ffmpeg.probe('/home/video/{name}.{type}'.format(name=name, type=type))
-            f.close()
 
             # 这是海报
             # with open('{}.jpg'.format(name), 'wb') as f:
@@ -112,34 +111,33 @@ def down():
                 print("写入海报")
                 f.write(poster)
 
+            # 写入到mysql写入名字，和路径
+            with conn.cursor() as cursor:
+                video_path = os.path.abspath("/home/video/{}.{}".format(name, type))
+                # video_path = os.path.abspath("{}.{}".format(name, type))
+                # poster_path = os.path.abspath("{}.jpg".format(name))
+                poster_path = os.path.abspath("/home/video/{}.jpg".format(name))
+
+                print("存入mysql")
+                if duration.get("format").get("duration") > 60:
+                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 0)
+                else:
+                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 1)
+                # if duration.get("format").get("duration") > 60:
+                #     sql = "insert into video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                #         title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,0)
+                # else:
+                #     sql = "insert into video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                #         title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,1)
+                cursor.execute(sql)
+                logging.debug("存入mysql")
+                print("存入sql成功")
+                conn.commit()
         else:
             print("url已存在")
             logging.debug("url已存在")
             continue
-
-            # 写入到mysql写入名字，和路径
-        with conn.cursor() as cursor:
-            video_path = os.path.abspath("/home/video/{}.{}".format(name, type))
-            # video_path = os.path.abspath("{}.{}".format(name, type))
-            # poster_path = os.path.abspath("{}.jpg".format(name))
-            poster_path = os.path.abspath("/home/video/{}.jpg".format(name))
-
-            print("存入mysql")
-            if duration.get("format").get("duration") > 60:
-                sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-                    title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 0)
-            else:
-                sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-                    title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 1)
-            # if duration.get("format").get("duration") > 60:
-            #     sql = "insert into video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-            #         title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,0)
-            # else:
-            #     sql = "insert into video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-            #         title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,1)
-            cursor.execute(sql)
-            logging.debug("存入mysql")
-            print("存入sql成功")
-            conn.commit()
 
     conn.close()
