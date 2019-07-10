@@ -46,28 +46,25 @@ class BloomFilter(object):
     # str_input 网站url的字符串
     def isContains(self, str_input):
         print(type(str_input))
-        # str
-        print(111111111111)
         # 判断是否有url
         if not str_input:
-            print(2222222222222)
             # 没有返回 false
             return False
         # 创建md5对象
         m5 = md5()
-        print(3333333333, m5)
+        # print(3333333333, m5)
         # 3333333333 <md5 HASH object @ 0x7f7afa18bf08>
         # 编码格式
         m5.update(str_input.encode())
 
-        print(4444444, m5.update(str_input.encode()))
+        # print(4444444, m5.update(str_input.encode()))
         # 4444444 None
         # 加密
         str_input = m5.hexdigest()
-        print(5555555, str_input)
+        # print(5555555, str_input)
         # 5555555 94e94d5aa986411d5cc7d00cb2b2d024
         ret = True
-        print(66666666, ret)
+        # print(66666666, ret)
         # 66666666 ret True
         # key ： redis的名字
         #       name = key + str（ 切割 加密后的字符串转换成16进制后 拼接blockNum ）
@@ -87,7 +84,6 @@ class BloomFilter(object):
             # name bloomfilter0
             print(self.server)
             # Redis<ConnectionPool<Connection<host=localhost,port=6379,db=0>>>
-            print(self.server.getbin)
 
             ret = ret & self.server.getbit(name, loc)
             print("ret", ret)

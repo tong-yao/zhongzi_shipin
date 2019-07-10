@@ -1,5 +1,7 @@
 from zhongzi_settings import user_agent, proxies
 import bloom_filter
+import upyun
+import hashlib
 
 import random, base64, requests, json, pymysql, os, hashlib, logging, ffmpeg
 
@@ -28,6 +30,10 @@ logging.basicConfig(filename="/home/gogs/spider/log/zhongzi_log.txt", filemode="
                     format="%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
 
+# 需要填写自己的服务名，操作员名，密码
+service = "qukanba-test"
+username = "zhaoyining"
+password = "QrNy0WvD9BTfPW3lWIes14vOg4Sg7N12"
 
 # logging.basicConfig(filename="zhongzi_log.txt", filemode="a",
 #                     format="%(asctime)s %(name)s:%(levelname)s:%(message)s", datefmt="%Y-%m-%d %H:%M:%S",
@@ -43,12 +49,6 @@ def down():
                            passwd='LIANzhuoxinxi888?',  # 密码
                            db='spider',  # 库名
                            charset='utf8')
-    # conn = pymysql.connect(  # ID地址
-    #                        port=3306,  # 端口号
-    #                        user='root',  # 用户名
-    #                        passwd='04560456',# 密码
-    #                        db='data',  # 库名
-    #                        charset='utf8')
 
     logging.debug("连接数据库")
 
@@ -80,7 +80,7 @@ def down():
             title_url = i['video']["title"]
             logging.debug("获取视频名称成功")
             # 获取视频格式
-            type = i['video']['play_info']['play_list'][0]['vtype']
+            typ = i['video']['play_info']['play_list'][0]['vtype']
             logging.debug("获取视频格式成功")
             # 获取上传用户姓名
             Uploader = i['user']['nick']
@@ -99,42 +99,78 @@ def down():
             print("md5")
 
             # 这是视频
-            # with open('{name}.{type}'.format(name=name, type=type), 'wb') as f:
-            with open('/home/video/{name}.{type}'.format(name=name, type=type), 'wb') as f:
+            with open('{name}.{typ}'.format(name=name, typ=typ), 'wb') as f:
                 print("写入视频")
                 f.write(res)
-                duration = ffmpeg.probe('/home/video/{name}.{type}'.format(name=name, type=type))
+            # 需要填写上传文件的本地路径和云存储路径，视频
+            local_file = "{name}.{typ}".format(name=name, typ=typ)
+            remote_file = "testsss_video/{name}.{typ}".format(name=name, typ=typ)
 
             # 这是海报
-            # with open('{}.jpg'.format(name), 'wb') as f:
-            with open('/home/video/{}.jpg'.format(name), 'wb') as f:
+            with open('{}.jpg'.format(name), 'wb') as f:
                 print("写入海报")
                 f.write(poster)
+            # 填写要上传的图片
+            img_file = "{}.jpg".format(name)
+            re_file = "img/{}.jpg".format(name)
+
+            up = upyun.UpYun(service, username=username, password=password)
+
+            def rest_upload():
+                """
+                rest文件上传
+                """
+                with open(img_file, "rb") as f:
+                    # headers 可选，见rest上传参数
+                    headers = None
+                    up.put(re_file, f, headers=headers)
+
+            rest_upload()
+            print("图片上传成功")
+
+            def rest_resume_upload():
+                """
+                文件断点续传
+                """
+                with open(local_file, "rb") as f:
+                    # headers 可选，见rest上传参数
+                    headers = None
+                    res = up.put(remote_file, f, checksum=True,
+                                 need_resume=True, headers=headers)
+                    print(res)
+
+            rest_resume_upload()
+            print("视频上传成功")
 
             # 写入到mysql写入名字，和路径
             with conn.cursor() as cursor:
-                video_path = os.path.abspath("/home/video/{}.{}".format(name, type))
-                # video_path = os.path.abspath("{}.{}".format(name, type))
-                # poster_path = os.path.abspath("{}.jpg".format(name))
-                poster_path = os.path.abspath("/home/video/{}.jpg".format(name))
+                video_path = "/testsss_video/{name}.{typ}".format(name=name, typ=typ)
+                poster_path = "/img/{}.jpg".format(name)
 
                 print("存入mysql")
-                if duration.get("format").get("duration") > 60:
-                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 0)
+                dura = ffmpeg.probe('{name}.{typ}'.format(name=name, typ=typ))
+                # print(dura)
+                print(type(dura))
+                dura_str = dura.get("format").get("duration")
+                video_size = dura.get("format").get("size")
+                print(type(dura_str))
+                print(dura_str)
+                dura_int = float(dura_str)
+                print(type(dura_int))
+                if dura_int > 60:
+                    print("大于60")
+                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration,video_size) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 0,video_size)
                 else:
-                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 1)
-                # if duration.get("format").get("duration") > 60:
-                #     sql = "insert into video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-                #         title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,0)
-                # else:
-                #     sql = "insert into video(video_name,video_path,Uploader,birthday,json,poster_path,duration) values ('%s','%s','%s','%s','%s','%s','%s')" % (
-                #         title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,1)
+                    print("小于60")    
+                    sql = "insert into zhongzi_video(video_name,video_path,Uploader,birthday,json,poster_path,duration,video_size) values ('%s','%s','%s','%s','%s','%s','%s')" % (
+                        title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path, 1,video_size)
                 cursor.execute(sql)
                 logging.debug("存入mysql")
                 print("存入sql成功")
                 conn.commit()
+            os.remove('{name}.{typ}'.format(name=name, typ=typ))
+            os.remove("{}.jpg".format(name))
         else:
             print("url已存在")
             logging.debug("url已存在")
