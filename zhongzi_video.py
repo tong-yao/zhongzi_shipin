@@ -72,6 +72,7 @@ def down():
         url = base64.b64decode(url)
         logging.debug("base64解密")
         print("去布隆函数")
+        url = str(url,encoding="utf-8")
         if bloom_filter.func1(url=url):
             # 获取视频
             res = requests.get(url).content
@@ -101,8 +102,8 @@ def down():
             # with open('{name}.{type}'.format(name=name, type=type), 'wb') as f:
             with open('/home/video/{name}.{type}'.format(name=name, type=type), 'wb') as f:
                 print("写入视频")
-                duration = f.write(res)
-            duration = ffmpeg.probe(duration)
+                f.write(res)
+                duration = ffmpeg.probe('/home/video/{name}.{type}'.format(name=name, type=type))
             f.close()
 
             # 这是海报
@@ -110,7 +111,7 @@ def down():
             with open('/home/video/{}.jpg'.format(name), 'wb') as f:
                 print("写入海报")
                 f.write(poster)
-            f.close()
+
         else:
             print("url已存在")
             logging.debug("url已存在")
@@ -138,6 +139,7 @@ def down():
             #         title_url, video_path, Uploader, birthday, pymysql.escape_string(str(i)), poster_path,1)
             cursor.execute(sql)
             logging.debug("存入mysql")
+            print("存入sql成功")
             conn.commit()
 
     conn.close()
